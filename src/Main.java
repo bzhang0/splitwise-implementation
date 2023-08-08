@@ -1,18 +1,21 @@
+import Splitwise.Splitwise;
+
 import java.io.BufferedReader;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.TreeSet;
 
 public class Main {
-    public static void main(String[] args) throws IOException {
-        Splitwise sw = new Splitwise();
 
-        parseCSV(sw, "");
+    public static final boolean DEBUG = false;
+
+    public static void main(String[] args) throws IOException {
+        Splitwise sw = new Splitwise(DEBUG);
+
+        parseCSV(sw, "./input/transactions.csv");
 //        System.out.println(sw.debtorDistributions);
 //        System.out.println(sw.balances);
 
@@ -102,7 +105,7 @@ public class Main {
             // remove the last comma
             sb.deleteCharAt(sb.length() - 1);
 
-            sw.newTransaction(creditor, amount, sb.toString());
+            sw.newExpense(creditor, amount, sb.toString());
         }
     }
 }

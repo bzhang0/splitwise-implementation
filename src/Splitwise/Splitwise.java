@@ -1,9 +1,16 @@
+package Splitwise;
+
 import java.math.BigDecimal;
 import java.util.*;
 
 import javafx.util.Pair;
 
 public class Splitwise {
+    private boolean DEBUG;
+
+    private int personIDCounter;
+    private int expenseIDCounter;
+    private int groupIDCounter;
 
     public Set<String> people;     // for now, we will assume that each person is unique
     public Map<String, BigDecimal> balances;
@@ -12,20 +19,27 @@ public class Splitwise {
     public Map<String, Map<String, BigDecimal>> debtorDistributions;
     // note that debtorDistributions can only decrease in value
 
-    public List<String> transactions;
+    public List<String> expenses;
 
     public Splitwise() {
+        clear(false);
+    }
+
+    public Splitwise(boolean debug) {
+        clear(debug);
+    }
+
+    public void clear(boolean debug) {
+        this.DEBUG = debug;
         people = new HashSet<>();
         balances = new HashMap<>();
-
         debtorDistributions = new HashMap<>();
-
-        transactions = new ArrayList<>();
+        expenses = new ArrayList<>();
     }
 
     public void newPerson(String name) {
         if (people.contains(name)) {
-            throw new IllegalArgumentException("Person already exists");
+            throw new IllegalArgumentException("Splitwise.Person already exists");
         }
 
         people.add(name);
@@ -33,11 +47,11 @@ public class Splitwise {
         debtorDistributions.put(name, new HashMap<>());
     }
 
-    public void newTransaction(String creditor, BigDecimal amount, String debtorBreakdown) {
+    public void newExpense(String creditor, BigDecimal amount, String debtorBreakdown) {
         // i dont want to write breakdown checking right now lol
 
         if (!people.contains(creditor)) {
-            System.out.println("Invalid transaction");
+            System.out.println("Invalid expense");
             return;
         }
 
@@ -45,7 +59,7 @@ public class Splitwise {
         for (String input : inputs) {
             String[] tokens = input.split("=");
             if (tokens.length != 2) {
-                System.out.println("Invalid transaction");
+                System.out.println("Invalid expense");
                 return;
             }
 
@@ -53,18 +67,18 @@ public class Splitwise {
             BigDecimal share = new BigDecimal(tokens[1]);
 
             if (!people.contains(debtor)) {
-                System.out.println("Invalid transaction");
+                System.out.println("Invalid expense");
                 return;
             }
 
             transfer(creditor, share, debtor);
         }
 
-        logTransaction(creditor, amount, debtorBreakdown);
+        logExpense(creditor, amount, debtorBreakdown);
     }
 
-    private void logTransaction(String creditor, BigDecimal amount, String debtorBreakdown) {
-        transactions.add(creditor + " paid " + amount + " for " + debtorBreakdown);
+    private void logExpense(String creditor, BigDecimal amount, String debtorBreakdown) {
+        expenses.add(creditor + " paid " + amount + " for " + debtorBreakdown);
     }
 
     public int rawTotalTransfers() {
@@ -91,7 +105,7 @@ public class Splitwise {
     }
 
     // simplify debts algorithm.
-    // given a set of people and their balances, find the minimum number of transactions to settle all debts
+    // given a set of people and their balances, find the minimum number of transfers to settle all debts
     // we follow this algorithm:
     //   sort the people by balance. positive means they are a creditor, negative means they are a debtor.
     //   then take the person who currently owes the most, then have them give as much as they can to the person who is owed the most.
@@ -150,7 +164,7 @@ public class Splitwise {
             }
             // note the else case is they perfectly satisfy.
 
-            // regardless, log this transaction
+            // regardless, log this expense
             simplifiedDebtorDistribution.putIfAbsent(debtor.getKey(), new HashMap<>());
             Map<String, BigDecimal> debtorDistribution = simplifiedDebtorDistribution.get(debtor.getKey());
             // debtor should have never paid creditor before
