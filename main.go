@@ -76,7 +76,12 @@ func parseCSV(sw *splitwise.Splitwise, filename string) (int, error) {
 		g.AddMember(user)
 	}
 
-	for _, record := range records[1 : len(records)-1] {
+	for _, record := range records[1:] {
+		// stop parsing when we reach the total balance
+		if record[1] == "Total balance" {
+			break
+		}
+
 		var creditor string
 		if err != nil {
 			return -1, err
@@ -116,7 +121,8 @@ func parseCSV(sw *splitwise.Splitwise, filename string) (int, error) {
 		}
 
 		s := sb.String()
-		s = s[:len(s)-1]
+		s = s[:len(s)-1] // remove last comma
+
 		g.AddTransaction(creditor, s)
 	}
 
