@@ -12,7 +12,7 @@ public class Main {
     public static void main(String[] args) throws IOException {
         Splitwise sw = new Splitwise();
 
-        parseCSV(sw, "");
+        parseCSV(sw, "../input/hitc.csv");
 //        System.out.println(sw.debtorDistributions);
 //        System.out.println(sw.balances);
 
