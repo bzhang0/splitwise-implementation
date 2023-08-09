@@ -1,0 +1,11 @@
+# ignore files in input folder but keep it open to put data in
+input/*.csv
+
+*.DS_Store
+
+# Editors
+.vscode
+.idea
+
+# Programs
+main
