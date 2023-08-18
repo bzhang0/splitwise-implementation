@@ -3,7 +3,6 @@ package main
 import (
 	"bzhang0/splitwise-implementation/splitwise"
 	"encoding/csv"
-	"errors"
 	"fmt"
 	"os"
 	"sort"
@@ -15,7 +14,7 @@ import (
 func main() {
 	sw := splitwise.NewSplitwise()
 
-	parseCSV(sw, "input/crooze.csv")
+	parseCSV(sw, "")
 	g, _ := sw.GetGroup(0)
 
 	g.PrintBalances()
@@ -28,7 +27,7 @@ func main() {
 
 	var plural string
 	savedTransfers := totalTransfers - simplifiedTransfers
-	if savedTransfers > 1 {
+	if savedTransfers > 1 || savedTransfers == 0 {
 		plural = "s"
 	}
 
@@ -47,9 +46,13 @@ func main() {
 			total = total.Add(value)
 		}
 
-		fmt.Printf("\n%s owes %s in total\n", person, total.Mul(decimal.NewFromInt(-1)))
+		if total.GreaterThanOrEqual(decimal.NewFromInt(0)) {
+			continue
+		}
+
+		fmt.Printf("\n%s owes %s in total\n", person, total.Neg())
 		for creditor, amount := range simplifiedDistribution[person] {
-			fmt.Printf("- owes %s to %s\n", amount.Mul(decimal.NewFromInt(-1)), creditor)
+			fmt.Printf("- owes %s to %s\n", amount.Neg(), creditor)
 		}
 	}
 }
@@ -73,7 +76,7 @@ func parseCSV(sw *splitwise.Splitwise, filename string) (int, error) {
 	users := records[0][5:]
 	for _, user := range users {
 		sw.CreateUser(user)
-		g.AddMember(user)
+		g.AddUser(user)
 	}
 
 	for _, record := range records[1:] {
@@ -82,48 +85,25 @@ func parseCSV(sw *splitwise.Splitwise, filename string) (int, error) {
 			break
 		}
 
-		var creditor string
-		if err != nil {
-			return -1, err
-		}
+		total, _ := decimal.NewFromString(record[3])
 
-		// find the creditor
-		tokens := record[5:]
-		for i, token := range tokens {
-			val, err := decimal.NewFromString(token)
-			if err != nil {
-				return -1, err
-			}
-			if val.GreaterThan(decimal.NewFromInt(0)) {
-				creditor = users[i]
-				// TODO: add individualized balance if multiple people paid
-				break
-			}
-		}
-		if creditor == "" {
-			return -1, errors.New("no creditor found")
-		}
-
-		// format data for AddTransaction
 		var sb strings.Builder
-		for i, token := range tokens {
-			bal, err := decimal.NewFromString(token)
+		for i, amount := range record[5:] {
+			amount, err := decimal.NewFromString(amount)
 			if err != nil {
 				return -1, err
 			}
 
-			if bal.LessThan(decimal.NewFromInt(0)) {
-				sb.WriteString(users[i])
-				sb.WriteString("=")
-				sb.WriteString(bal.Mul(decimal.NewFromInt(-1)).String())
-				sb.WriteString(",")
-			}
+			sb.WriteString(users[i])
+			sb.WriteString("=")
+			sb.WriteString(amount.String())
+			sb.WriteString(",")
 		}
 
 		s := sb.String()
 		s = s[:len(s)-1] // remove last comma
 
-		g.AddTransaction(creditor, s)
+		g.AddTransaction(total, s)
 	}
 
 	return id, nil
